@@ -61,9 +61,9 @@ function saveImage($imageResource, $destination, $extension) {
         case 'jpeg':
             return imagejpeg($imageResource, $destination, JPEG_QUALITY);
         case 'png':
-            // PNG compression is 0 (no compression) to 9
-            $pngQuality = round((100 - JPEG_QUALITY) / 100 * 9);
-            return imagepng($imageResource, $destination, $pngQuality);
+            // PNG compression is 0 (no compression) to 9. 
+            // 9 provides the best compression (smallest file size) without quality loss.
+            return imagepng($imageResource, $destination, 9);
         case 'webp':
             return imagewebp($imageResource, $destination, JPEG_QUALITY);
         default:

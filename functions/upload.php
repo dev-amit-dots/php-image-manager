@@ -52,6 +52,27 @@ function uploadImage($file, $dbConn) {
         return ['success' => false, 'error' => 'Failed to save optimized image.'];
     }
 
+    // Ensure the optimized file is not larger than the original uploaded file
+    clearstatcache();
+    if (filesize($optimizedPath) > filesize($file['tmp_name'])) {
+        // Optimization bloated the file (common with already highly compressed images).
+        // Fall back to the original file.
+        copy($file['tmp_name'], $optimizedPath);
+        
+        // Discard the bloated resource so the watermark is applied to the original
+        if ($imageResource !== $optimizedResource) {
+            imagedestroy($optimizedResource);
+            // Re-create the resource from the original file for watermarking
+            $optimizedResource = createImageResource($file['tmp_name'], $mimeType);
+            
+            // Re-apply alpha channel settings if needed
+            if ($extension === 'png' || $extension === 'webp') {
+                imagealphablending($optimizedResource, false);
+                imagesavealpha($optimizedResource, true);
+            }
+        }
+    }
+
     // 5. Apply Watermark -> Save Watermarked
     $optimizedWidth = imagesx($optimizedResource);
     $optimizedHeight = imagesy($optimizedResource);
