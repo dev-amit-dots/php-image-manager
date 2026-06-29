@@ -23,19 +23,29 @@ function applyWatermark($sourceImageResource, $imageWidth, $imageHeight) {
         $textWidth = imagefontwidth($fontSize) * strlen($fallbackText);
         $textHeight = imagefontheight($fontSize);
         
-        $destX = $imageWidth - $textWidth - $margin;
-        $destY = $imageHeight - $textHeight - $margin;
-        
         // Ensure image supports alpha for the background overlay
         imagealphablending($sourceImageResource, true);
         
-        // Add a semi-transparent dark background block behind text for readability
         $bgColor = imagecolorallocatealpha($sourceImageResource, 0, 0, 0, 80); // Dark background with some transparency
-        imagefilledrectangle($sourceImageResource, $destX - 10, $destY - 10, $destX + $textWidth + 10, $destY + $textHeight + 10, $bgColor);
-        
-        // Add the white text
         $textColor = imagecolorallocate($sourceImageResource, 255, 255, 255);
-        imagestring($sourceImageResource, $fontSize, $destX, $destY, $fallbackText, $textColor);
+        
+        $spacingX = $textWidth * 1.5;
+        $spacingY = $textHeight * 4.0;
+        
+        $row = 0;
+        for ($y = -$textHeight; $y < $imageHeight; $y += ($textHeight + $spacingY)) {
+            $offsetX = ($row % 2 == 0) ? 0 : ($textWidth + $spacingX) / 2;
+            
+            for ($x = -$textWidth; $x < $imageWidth; $x += ($textWidth + $spacingX)) {
+                $destX = $x - $offsetX;
+                
+                if ($destX > -$textWidth && $destX < $imageWidth) {
+                    imagefilledrectangle($sourceImageResource, $destX - 10, $y - 10, $destX + $textWidth + 10, $y + $textHeight + 10, $bgColor);
+                    imagestring($sourceImageResource, $fontSize, $destX, $y, $fallbackText, $textColor);
+                }
+            }
+            $row++;
+        }
         
         return $sourceImageResource;
     }
@@ -44,8 +54,8 @@ function applyWatermark($sourceImageResource, $imageWidth, $imageHeight) {
     $watermarkWidth = imagesx($watermark);
     $watermarkHeight = imagesy($watermark);
 
-    // Scale watermark if it's too large for the image (Max 20% width)
-    $maxWatermarkWidth = $imageWidth * 0.20;
+    // Scale watermark to be smaller for tiling (Max 15% width)
+    $maxWatermarkWidth = $imageWidth * 0.15;
     
     if ($watermarkWidth > $maxWatermarkWidth) {
         $newWatermarkWidth = $maxWatermarkWidth;
@@ -67,16 +77,27 @@ function applyWatermark($sourceImageResource, $imageWidth, $imageHeight) {
         $watermarkHeight = $newWatermarkHeight;
     }
 
-    // Calculate position (Bottom Right with 20px margin)
-    $margin = 20;
-    $destX = $imageWidth - $watermarkWidth - $margin;
-    $destY = $imageHeight - $watermarkHeight - $margin;
-
     // Enable alpha blending to apply transparent logo
     imagealphablending($sourceImageResource, true);
 
-    // Copy watermark onto the source image
-    imagecopy($sourceImageResource, $watermark, $destX, $destY, 0, 0, $watermarkWidth, $watermarkHeight);
+    // Tile the watermark across the entire image in a staggered grid
+    $spacingX = $watermarkWidth * 0.5; // Spacing between watermarks
+    $spacingY = $watermarkHeight * 1.5;
+
+    $row = 0;
+    for ($y = -$watermarkHeight; $y < $imageHeight; $y += ($watermarkHeight + $spacingY)) {
+        $offsetX = ($row % 2 == 0) ? 0 : ($watermarkWidth + $spacingX) / 2;
+        
+        for ($x = -$watermarkWidth; $x < $imageWidth; $x += ($watermarkWidth + $spacingX)) {
+            $destX = $x - $offsetX;
+            
+            // Only draw if it's somewhat visible on the canvas
+            if ($destX > -$watermarkWidth && $destX < $imageWidth) {
+                imagecopy($sourceImageResource, $watermark, $destX, $y, 0, 0, $watermarkWidth, $watermarkHeight);
+            }
+        }
+        $row++;
+    }
 
     imagedestroy($watermark);
     
