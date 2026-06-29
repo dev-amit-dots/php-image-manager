@@ -304,13 +304,6 @@ If you have suggestions, bug fixes, or new features, feel free to:
 3. Commit your changes
 4. Open a Pull Request
 
----
-
-# 📄 License
-
-This project is licensed under the **MIT License**.
-
-Feel free to use it in personal and commercial projects.
 
 ---
 
